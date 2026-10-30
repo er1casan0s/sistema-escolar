@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Configurações - Sistema Escolar</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar"><div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div><nav id="menu"></nav></aside>
+    <main class="content">
+      <h2>Configurações da Escola</h2>
+      <div class="card" style="margin-top:20px; max-width:600px;">
+        <form id="form-config">
+          <label>Nome da Escola</label>
+          <input type="text" id="cfg-nome" required>
+
+          <label>Método de Avaliação</label>
+          <select id="cfg-metodo" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px;">
+            <option value="bimestral">Bimestral (4 notas)</option>
+            <option value="trimestre">Trimestral (3 notas)</option>
+            <option value="semestre">Semestral (2 notas)</option>
+          </select>
+
+          <label>Média Mínima para Aprovação</label>
+          <input type="number" id="cfg-media" step="0.1" required>
+
+          <button type="submit" class="btn-primario" style="margin-top:15px;">Salvar Configurações</button>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirTipo('admin'); if(!u) return;
+      App.renderizarMenu(u);
+      
+      const cfg = await App.get('/api/admin/configuracoes');
+      document.getElementById('cfg-nome').value = cfg.nome_escola;
+      document.getElementById('cfg-metodo').value = cfg.metodo_avaliacao;
+      document.getElementById('cfg-media').value = cfg.media_minima;
+    });
+
+    document.getElementById('form-config').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await App.put('/api/admin/configuracoes', {
+        nome_escola: document.getElementById('cfg-nome').value,
+        metodo_avaliacao: document.getElementById('cfg-metodo').value,
+        media_minima: document.getElementById('cfg-media').value
+      });
+      App.sucesso('Configurações salvas com sucesso!');
+    });
+  </script>
+</body>
+</html>

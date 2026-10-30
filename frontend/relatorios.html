@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Relatórios - Sistema Escolar</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar"><div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div><nav id="menu"></nav></aside>
+    <main class="content">
+      <h2>Relatórios e Impressões</h2>
+      
+      <div class="card" style="margin-top:20px;">
+        <h3>Selecione a Turma</h3>
+        <select id="select-turma" style="width:100%; max-width:400px; padding:10px; margin: 15px 0; border-radius:8px;"></select>
+        
+        <div style="display:flex; gap:15px; margin-top:20px; flex-wrap:wrap;">
+          <button class="btn-primario" onclick="baixarPDF()" style="background:#E57373;">📄 Baixar Lista de Presença (PDF)</button>
+          <button class="btn-primario" onclick="baixarExcel()" style="background:#66BB6A;">📊 Baixar Notas (Excel)</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirTipo('admin'); if(!u) return;
+      App.renderizarMenu(u);
+      const turmas = await App.get('/api/turmas/');
+      document.getElementById('select-turma').innerHTML = turmas.map(t => `<option value="${t.id}">${t.nome} (${t.turno})</option>`).join('');
+    });
+
+    function baixarPDF() {
+      const id = document.getElementById('select-turma').value;
+      window.open(`/api/admin/relatorio/lista-presenca/${id}`, '_blank');
+    }
+
+    function baixarExcel() {
+      const id = document.getElementById('select-turma').value;
+      window.open(`/api/admin/relatorio/excel-notas/${id}`, '_blank');
+    }
+  </script>
+</body>
+</html>

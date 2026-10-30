@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Professor - ES@Escolar</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div>
+      <nav id="menu"></nav>
+    </aside>
+        <main class="content">
+      <div class="header-pagina">
+        <h2 id="saudacao">Carregando...</h2>
+        <button class="btn-acao" onclick="logout()" style="border-color:#E57373; color:#E57373;">Sair do Sistema</button>
+      </div>
+      
+      <div class="card" style="margin-top:20px;">
+        <h3>Minhas Informações</h3>
+        <p><strong>Disciplina:</strong> <span id="info-disciplina">-</span></p>
+        <p><strong>Dias de Trabalho:</strong> <span id="info-dias">-</span></p>
+      </div>
+
+      <div class="card">
+        <h3>Atalhos Rápidos</h3>
+        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:15px;">
+          <a href="frequencia.html" class="btn-primario" style="text-decoration:none; text-align:center;">Chamar Frequência</a>
+          <a href="notas.html" class="btn-primario" style="text-decoration:none; text-align:center; background: var(--verde-menta); color: #2D3E50;">Lançar Notas</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirTipo('professor'); if(!u) return;
+      App.renderizarMenu(u);
+
+      document.getElementById('saudacao').textContent = `Olá, Prof(a). ${App.primeiroNome(u.nome)}! 👋`;
+
+      try {
+        // Busca as informações do perfil do professor na API
+        const perfil = await App.get(`/api/professores/meu-perfil/${u.id}`);
+        document.getElementById('info-disciplina').textContent = perfil.disciplina || 'Não definida';
+        document.getElementById('info-dias').textContent = perfil.dias_trabalho || 'Não definidos';
+        document.getElementById('info-formacao').textContent = perfil.formacao || 'Não informada';
+      } catch(e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

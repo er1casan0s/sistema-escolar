@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Alunos - Sistema Escolar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .grid-turmas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+    .card-turma { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--sombra); border-top: 6px solid var(--azul-suave); transition: 0.2s; cursor: pointer; }
+    .card-turma:hover { transform: translateY(-4px); }
+    .lista-alunos-turma { display: none; margin-top: 20px; background: white; border-radius: 16px; padding: 20px; box-shadow: var(--sombra); }
+    .lista-alunos-turma.ativo { display: block; animation: fadeIn 0.4s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    /* Estilo do Modal */
+    .modal-fundo { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-box { background: white; padding: 25px; border-radius: 16px; width: 450px; max-width: 90%; }
+    .modal-box h3 { margin-bottom: 15px; color: var(--azul-medio); }
+    .modal-box input, .modal-box select { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div>
+      <nav id="menu"></nav>
+    </aside>
+    <main class="content">
+      <div class="header-pagina">
+        <h2>Painel de Alunos</h2>
+        <button class="btn-primario" onclick="abrirModalAluno()">+ Novo Aluno</button>
+      </div>
+
+      <div class="grid-turmas" id="grid-turmas"></div>
+
+      <div class="lista-alunos-turma" id="painel-alunos">
+        <div class="header-pagina">
+          <h3 id="titulo-turma-selecionada">Alunos</h3>
+          <button class="btn-acao" onclick="fecharLista()">Fechar Lista</button>
+        </div>
+        <table class="tabela">
+          <thead><tr><th>Nome</th><th>Turno</th><th>Frequência</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-alunos"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL DE CADASTRO DE ALUNO -->
+  <div class="modal-fundo" id="modal-aluno">
+    <div class="modal-box">
+      <h3>Cadastrar Novo Aluno</h3>
+      <form id="form-aluno">
+        <input type="hidden" id="aluno-id" value="">
+        <label>Nome Completo</label>
+        <input type="text" id="aluno-nome" required>
+        
+        <label>Nome de Usuário (login)</label>
+        <input type="text" id="aluno-username" required>
+        
+        <label>Senha (padrão: teste123)</label>
+        <input type="text" id="aluno-senha" value="teste123" required>
+        
+        <label>Turma</label>
+        <select id="aluno-turma" required>
+          <option value="">Selecione a turma...</option>
+        </select>
+
+        <label>Atipicidades / Observações Médicas (Opcional)</label>
+        <input type="text" id="aluno-obs" placeholder="Ex: TDAH, Alergia a dipirona...">
+        
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-acao" style="width:100%" onclick="fecharModalAluno()">Cancelar</button>
+          <button type="submit" class="btn-primario" style="width:100%">Cadastrar Aluno</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    let turmaAtual = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirTipo('admin'); if(!u) return;
+      App.renderizarMenu(u);
+      await carregarTurmas();
+      await preencherSelectTurmas();
+    });
+
+    // --- LISTAGEM DE TURMAS E CARDS ---
+    async function carregarTurmas() {
+      try {
+        const turmas = await App.get('/api/turmas/');
+        const grid = document.getElementById('grid-turmas');
+        const cores = ['#7CB9E8', '#A8D5BA', '#FFB74D', '#E57373', '#BA68C8', '#4DB6AC'];
+        
+        grid.innerHTML = turmas.map((t, i) => `
+          <div class="card-turma" style="border-top-color: ${cores[i % cores.length]}" onclick="abrirTurma(${t.id}, '${t.nome}', '${t.turno}')">
+            <h3>${t.nome}</h3>
+            <p>Turno: ${t.turno} | Alunos: ${t.qtd_alunos}</p>
+            <span style="font-size: 13px; color: var(--azul-suave); font-weight: bold;">Ver alunos →</span>
+          </div>
+        `).join('');
+      } catch(e) { App.erro('Erro ao carregar turmas.'); }
+    }
+
+    async function preencherSelectTurmas() {
+      const turmas = await App.get('/api/turmas/');
+      const select = document.getElementById('aluno-turma');
+      select.innerHTML = '<option value="">Selecione a turma...</option>' + 
+        turmas.map(t => `<option value="${t.id}">${t.nome} (${t.turno})</option>`).join('');
+    }
+
+    // --- ABRIR LISTA DE ALUNOS DA TURMA ---
+    async function abrirTurma(id, nome, turno) {
+      turmaAtual = id;
+      document.getElementById('titulo-turma-selecionada').textContent = `Alunos do ${nome} (${turno})`;
+      
+      try {
+        const alunos = await App.get(`/api/alunos/?turma_id=${id}`);
+        const tabela = document.getElementById('tabela-alunos');
+        
+        if (alunos.length === 0) {
+          tabela.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum aluno nesta turma.</td></tr>';
+        } else {
+          tabela.innerHTML = alunos.map(a => `
+            <tr>
+              <td>${a.nome}</td>
+              <td>${a.turno}</td>
+              <td><span class="badge sucesso">Frequência OK</span></td>
+              <td><button class="btn-acao" onclick="alert('Editar em breve')">Editar</button></td>
+            </tr>
+          `).join('');
+        }
+        document.getElementById('painel-alunos').classList.add('ativo');
+        document.getElementById('painel-alunos').scrollIntoView({ behavior: 'smooth' });
+      } catch(e) { App.erro('Erro ao carregar alunos.'); }
+    }
+
+    function fecharLista() { document.getElementById('painel-alunos').classList.remove('ativo'); }
+
+    // --- CADASTRO DE ALUNO ---
+     function abrirModalAluno() { 
+      document.getElementById('form-aluno').reset();
+      document.getElementById('aluno-id').value = '';
+      document.querySelector('#modal-aluno h3').textContent = 'Cadastrar Novo Aluno';
+      document.getElementById('modal-aluno').style.display = 'flex'; 
+    }
+    function fecharModalAluno() { document.getElementById('modal-aluno').style.display = 'none'; }
+
+        // 1. NOVA FUNÇÃO PARA PREENCHER O MODAL AO CLICAR EM EDITAR
+    async function editarAluno(id) {
+      try {
+        // Busca os dados do aluno no backend
+        const aluno = await App.get(`/api/alunos/${id}`);
+        
+        // Preenche os campos do modal
+        document.getElementById('aluno-id').value = aluno.id;
+        document.getElementById('aluno-nome').value = aluno.nome;
+        document.getElementById('aluno-username').value = aluno.username;
+        document.getElementById('aluno-turma').value = aluno.turma_id;
+        document.getElementById('aluno-obs').value = aluno.atipicidades || '';
+        
+        // Muda o título do modal para indicar edição
+        document.querySelector('#modal-aluno h3').textContent = 'Editar Aluno';
+        
+        // Abre o modal
+        document.getElementById('modal-aluno').style.display = 'flex';
+      } catch(e) {
+        App.erro('Erro ao buscar dados do aluno.');
+      }
+    }
+
+    // 2. ALTERAÇÃO NO SALVAR (Ele agora decide se cria ou edita)
+    document.getElementById('form-aluno').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      App.botaoLoading(btn, true);
+
+      const alunoId = document.getElementById('aluno-id').value;
+      const dados = {
+        nome: document.getElementById('aluno-nome').value,
+        username: document.getElementById('aluno-username').value,
+        turma_id: document.getElementById('aluno-turma').value,
+        atipicidades: document.getElementById('aluno-obs').value
+      };
+
+      try {
+        if (alunoId) {
+          // Se tem ID, é EDIÇÃO (PUT)
+          await App.put(`/api/alunos/${alunoId}`, dados);
+          App.sucesso('Aluno atualizado com sucesso!');
+        } else {
+          // Se não tem ID, é CRIAÇÃO (POST)
+          dados.senha = document.getElementById('aluno-senha').value || 'teste123';
+          const turnoSelect = document.getElementById('aluno-turma');
+          dados.turno = turnoSelect.options[turnoSelect.selectedIndex].text.split('(')[1].replace(')', '');
+          await App.post('/api/alunos/', dados);
+          App.sucesso('Aluno cadastrado com sucesso!');
+        }
+        
+        fecharModalAluno();
+        document.getElementById('form-aluno').reset();
+        document.getElementById('aluno-id').value = ''; // Limpa o ID
+        document.querySelector('#modal-aluno h3').textContent = 'Cadastrar Novo Aluno';
+        await carregarTurmas();
+        if(turmaAtual) abrirTurma(turmaAtual, '', '');
+      } catch (err) {
+        App.erro(err.message);
+      } finally {
+        App.botaoLoading(btn, false);
+      }
+    });
+
+
+  </script>
+</body>
+</html>

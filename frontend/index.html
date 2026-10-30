@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Escolar</title>
+  <link rel="stylesheet" href="css/splash.css">
+</head>
+<body>
+  <div class="splash-container">
+    <img src="assets/logo.svg" alt="Logo ES@Sistemas" class="splash-logo">
+    <h1 class="splash-titulo">Sistema Escolar</h1>
+    <h2 class="splash-subtitulo">ES@SistemasEducacionais</h2>
+    
+    <div class="splash-loader">
+      <div class="loader-circulo"></div>
+    </div>
+  </div>
+
+  <script>
+    // Tempo de 5 segundos e depois transição suave
+    setTimeout(() => {
+      document.body.classList.add('fade-out');
+      setTimeout(() => window.location.href = 'login.html', 600);
+    }, 5000);
+  </script>
+</body>
+</html>

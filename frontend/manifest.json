@@ -1,0 +1,11 @@
+{
+  "name": "Sistema Escolar ES@",
+  "short_name": "ES@Escolar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E0F2F1",
+  "theme_color": "#4A90A4",
+  "icons": [
+    { "src": "assets/logo.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Professores - Sistema Escolar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .modal-fundo { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-box { background: white; padding: 25px; border-radius: 16px; width: 450px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar"><div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div><nav id="menu"></nav></aside>
+    <main class="content">
+      <div class="header-pagina">
+        <h2>Gerenciar Professores</h2>
+        <button class="btn-primario" onclick="abrirModal()">+ Novo Professor</button>
+      </div>
+      <div class="card">
+        <table class="tabela">
+          <thead><tr><th>Nome</th><th>Usuário</th><th>Disciplina</th><th>Dias</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-professores"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL DE CADASTRO/EDIÇÃO -->
+  <div class="modal-fundo" id="modal-prof">
+    <div class="modal-box">
+      <h3 id="modal-titulo">Cadastrar Professor</h3>
+      <form id="form-prof">
+        <input type="hidden" id="prof-id">
+        
+        <label>Nome Completo</label>
+        <input type="text" id="prof-nome" required>
+        
+        <label>Usuário (login)</label>
+        <input type="text" id="prof-username" required>
+        
+        <label>Senha</label>
+        <input type="text" id="prof-senha" placeholder="Deixe em branco para não alterar">
+        
+        <!-- DISCIPLINA -->
+        <label>Disciplina</label>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <select id="prof-disciplina" required style="flex: 1; margin-bottom: 0;"></select>
+          <button type="button" class="btn-primario" style="width: auto; padding: 0 15px; font-size: 20px;" onclick="abrirModalDisciplina()" title="Adicionar nova disciplina">+</button>
+        </div>
+        
+        <!-- DIAS DA SEMANA -->
+        <label>Dias que trabalha</label>
+        <div id="dias-semana" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; padding: 10px; border: 1px solid #cfd8dc; border-radius: 8px; background: #f9fbfb;">
+          <label style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:normal; cursor:pointer; color:#2D3E50;">
+            <input type="checkbox" class="check-dia" value="Seg"> Seg
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:normal; cursor:pointer; color:#2D3E50;">
+            <input type="checkbox" class="check-dia" value="Ter"> Ter
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:normal; cursor:pointer; color:#2D3E50;">
+            <input type="checkbox" class="check-dia" value="Qua"> Qua
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:normal; cursor:pointer; color:#2D3E50;">
+            <input type="checkbox" class="check-dia" value="Qui"> Qui
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:normal; cursor:pointer; color:#2D3E50;">
+            <input type="checkbox" class="check-dia" value="Sex"> Sex
+          </label>
+        </div>
+
+
+            <label>Turmas que dá aula</label>
+        <div id="lista-turmas-prof" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; padding: 10px; border: 1px solid #cfd8dc; border-radius: 8px; background: #f9fbfb;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <label>Formação (Bio)</label>
+        <input type="text" id="prof-formacao" placeholder="Ex: Licenciatura em Informática">
+        
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" class="btn-acao" style="width:100%" onclick="fecharModal()">Cancelar</button>
+          <button type="submit" class="btn-primario" style="width:100%">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+<script>
+    let profEditando = null;
+
+    // 1. INICIALIZAÇÃO DA PÁGINA
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirTipo('admin'); 
+      if(!u) return;
+      
+      App.renderizarMenu(u);
+      await carregarDisciplinas();
+      await carregarProfessores();
+      await carregarTurmasCheckbox(); // Carrega as turmas no formulário
+    });
+
+    // 2. CARREGAR DISCIPLINAS
+    async function carregarDisciplinas() {
+      const disc = await App.get('/api/professores/disciplinas');
+      disc.sort((a, b) => a.nome.localeCompare(b.nome));
+      document.getElementById('prof-disciplina').innerHTML = disc.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+    }
+
+    // 3. CARREGAR TURMAS NO FORMULÁRIO (Checkboxes)
+    async function carregarTurmasCheckbox() {
+      const turmas = await App.get('/api/turmas/');
+      const div = document.getElementById('lista-turmas-prof');
+      if(!div) return; // Segurança caso o HTML não tenha a div
+
+      div.innerHTML = turmas.map(t => `
+        <label style="display:flex; align-items:center; gap:5px; font-size:13px; font-weight:normal; cursor:pointer;">
+          <input type="checkbox" class="check-turma" value="${t.id}"> ${t.nome} (${t.turno})
+        </label>
+      `).join('');
+    }
+
+    // 4. LISTAR PROFESSORES NA TABELA
+    async function carregarProfessores() {
+      const profs = await App.get('/api/professores/');
+      const tbody = document.getElementById('tabela-professores');
+      if(profs.length === 0) { tbody.innerHTML = '<tr><td colspan="5">Nenhum professor cadastrado.</td></tr>'; return; }
+      
+      tbody.innerHTML = profs.map(p => `
+        <tr>
+          <td>${p.nome}</td>
+          <td>${p.username}</td>
+          <td>${p.disciplina || '-'}</td>
+          <td>${p.dias_trabalho || '-'}</td>
+          <td>
+            <button class="btn-acao" onclick='editarProf(${JSON.stringify(p)})'>Editar</button>
+            <button class="btn-acao" style="color:#E57373; border-color:#E57373;" onclick="excluirProf(${p.id})">Excluir</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 5. ABRIR MODAL (LIMPO PARA NOVO CADASTRO)
+    function abrirModal() {
+      profEditando = null;
+      document.getElementById('modal-titulo').textContent = 'Cadastrar Professor';
+      document.getElementById('form-prof').reset();
+      document.getElementById('prof-id').value = '';
+      
+      // Desmarca dias e turmas
+      document.querySelectorAll('.check-dia').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.check-turma').forEach(cb => cb.checked = false); 
+      
+      document.getElementById('modal-prof').style.display = 'flex';
+    }
+    
+    function fecharModal() { document.getElementById('modal-prof').style.display = 'none'; }
+
+    // 6. EDITAR PROFESSOR (PREENCHER CAMPOS, DIAS E TURMAS)
+    function editarProf(p) {
+      profEditando = p;
+      document.getElementById('modal-titulo').textContent = 'Editar Professor';
+      document.getElementById('prof-id').value = p.id;
+      document.getElementById('prof-nome').value = p.nome;
+      document.getElementById('prof-username').value = p.username;
+      document.getElementById('prof-disciplina').value = p.disciplina_id;
+      document.getElementById('prof-formacao').value = p.formacao || '';
+
+      // Marcar os dias
+      const diasSalvos = p.dias_trabalho ? p.dias_trabalho.split(',').map(d => d.trim()) : [];
+      document.querySelectorAll('.check-dia').forEach(cb => {
+        cb.checked = diasSalvos.includes(cb.value);
+      });
+
+      // Marcar as turmas
+      document.querySelectorAll('.check-turma').forEach(cb => {
+        cb.checked = p.turmas_ids && p.turmas_ids.includes(cb.value * 1);
+      });
+
+      document.getElementById('modal-prof').style.display = 'flex';
+    }
+
+    // 7. SALVAR (JUNTAR DIAS, TURMAS E ENVIAR)
+    document.getElementById('form-prof').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Pega os dias marcados
+      const diasMarcados = Array.from(document.querySelectorAll('.check-dia:checked')).map(cb => cb.value);
+      const diasString = diasMarcados.join(', ');
+
+      // Pega as turmas marcadas
+      const turmasMarcadas = Array.from(document.querySelectorAll('.check-turma:checked')).map(cb => parseInt(cb.value));
+
+      const dados = {
+        nome: document.getElementById('prof-nome').value,
+        username: document.getElementById('prof-username').value,
+        disciplina_id: document.getElementById('prof-disciplina').value,
+        dias_trabalho: diasString,
+        formacao: document.getElementById('prof-formacao').value,
+        turmas_ids: turmasMarcadas // Envia as turmas para o backend
+      };
+      
+      const senha = document.getElementById('prof-senha').value;
+      if (senha) dados.senha = senha;
+
+      try {
+        if (profEditando) {
+          await App.put(`/api/professores/${profEditando.id}`, dados);
+          App.sucesso('Professor atualizado!');
+        } else {
+          dados.senha = senha || 'teste123';
+          await App.post('/api/professores/', dados);
+          App.sucesso('Professor cadastrado!');
+        }
+        fecharModal();
+        carregarProfessores();
+      } catch(err) { App.erro(err.message); }
+    });
+
+    // 8. EXCLUIR
+    async function excluirProf(id) {
+      if(!confirm('Excluir este professor? Ele irá para o histórico de ex-professores.')) return;
+      try {
+        await App.del(`/api/professores/${id}`);
+        App.sucesso('Professor movido para ex-professores.');
+        carregarProfessores();
+      } catch(e) { App.erro(e.message); }
+    }
+
+    // 9. ADICIONAR NOVA DISCIPLINA
+    async function abrirModalDisciplina() {
+      const nome = prompt("Digite o nome da nova disciplina (Ex: Matemática):");
+      if (!nome || nome.trim() === '') return;
+
+      try {
+        const res = await App.post('/api/professores/disciplinas', { nome: nome.trim() });
+        App.sucesso(res.mensagem);
+        await carregarDisciplinas();
+        const select = document.getElementById('prof-disciplina');
+        select.value = res.id; 
+      } catch (e) {
+        App.erro(e.message);
+      }
+    }
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Sistema Escolar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <img src="assets/logo.svg" alt="Logo" class="logo-login">
+    <h2>Bem-vindo(a)</h2>
+    <p class="sub">Acesse sua conta</p>
+    <form id="form-login">
+      <label>Usuário</label>
+      <input type="text" id="username" required autocomplete="username">
+      <label>Senha</label>
+      <input type="password" id="senha" required autocomplete="current-password">
+      <button type="submit">Entrar</button>
+    </form>
+    <p id="msg" class="msg"></p>
+  </div>
+  <footer>ES@SistemasEducacionais - 2026</footer>
+    <script src="js/app.js"></script>
+    <script src="js/login.js"></script>
+  
+</body>
+</html>

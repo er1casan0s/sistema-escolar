@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Perfil - Sistema Escolar</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar"><div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div><nav id="menu"></nav></aside>
+    <main class="content">
+      <h2>Meu Perfil</h2>
+      <div class="card"><p>Em breve: edição de dados pessoais, foto e bio.</p></div>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { const u = App.exigirLogin(); if(u) App.renderizarMenu(u); });</script>
+</body>
+</html>

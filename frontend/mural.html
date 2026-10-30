@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Mural - Sistema Escolar</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar"><div class="brand"><img src="assets/logo.svg"><span>ES@Escolar</span></div><nav id="menu"></nav></aside>
+    <main class="content">
+      <div class="header-pagina">
+        <h2>Mural de Avisos</h2>
+        <button class="btn-acao" onclick="logout()" style="border-color:#E57373; color:#E57373;">Sair do Sistema</button>
+      </div>
+      
+      <div class="card" id="card-postagem">
+        <h3>Fazer Nova Postagem</h3>
+        <form id="form-aviso" style="margin-top:15px;">
+          <label>Mensagem</label>
+          <textarea id="aviso-msg" rows="3" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; margin-bottom:10px;"></textarea>
+          
+          <label>Enviar para:</label>
+          <select id="aviso-destino" required style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc;">
+            <option value="geral">Toda a Escola</option>
+            <optgroup label="Turmas" id="lista-turmas"></optgroup>
+            <optgroup label="Alunos Específicos" id="lista-alunos"></optgroup>
+          </select>
+          
+          <button type="submit" class="btn-primario" style="width:auto;">Publicar Aviso</button>
+        </form>
+      </div>
+
+      <h3 style="margin-top:30px; color:var(--azul-medio);">Avisos Publicados</h3>
+      <div id="lista-avisos" style="margin-top:15px; display:flex; flex-direction:column; gap:15px;"></div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const u = App.exigirLogin(); if(!u) return;
+      App.renderizarMenu(u);
+
+      if(u.tipo === 'aluno') {
+        document.getElementById('card-postagem').style.display = 'none';
+      } else {
+        // Popular Turmas
+        const turmas = await App.get('/api/turmas/');
+        document.getElementById('lista-turmas').innerHTML = turmas.map(t => 
+          `<option value="turma_${t.id}">Turma: ${t.nome} (${t.turno})</option>`
+        ).join('');
+
+        // Popular Alunos
+        const alunos = await App.get('/api/alunos/');
+        document.getElementById('lista-alunos').innerHTML = alunos.map(a => 
+          `<option value="aluno_${a.id}">${a.nome}</option>`
+        ).join('');
+      }
+      carregarAvisos();
+    });
+
+    async function carregarAvisos() {
+      try {
+        const avisos = await App.get('/api/mural/');
+        const div = document.getElementById('lista-avisos');
+        if(avisos.length === 0) { div.innerHTML = '<p>Nenhum aviso no mural.</p>'; return; }
+        
+        div.innerHTML = avisos.map(a => `
+          <div class="card" style="border-left: 5px solid var(--azul-suave);">
+            <p style="font-size:12px; color:#888;">Por ${a.autor_nome} em ${a.data}</p>
+            <p style="font-size:16px; margin-top:10px;">${a.mensagem}</p>
+          </div>
+        `).join('');
+      } catch(e) { App.erro('Erro ao carregar mural.'); }
+    }
+
+    document.getElementById('form-aviso').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('aviso-msg').value;
+      const destino = document.getElementById('aviso-destino').value;
+      const u = App.getUsuario();
+
+      let tipo = 'geral', id = null;
+      if (destino.startsWith('turma_')) { tipo = 'turma'; id = destino.split('_')[1]; }
+      if (destino.startsWith('aluno_')) { tipo = 'aluno'; id = destino.split('_')[1]; }
+
+      try {
+        await App.post('/api/mural/', { autor_id: u.id, mensagem: msg, destinatario_tipo: tipo, destinatario_id: id });
+        App.sucesso('Aviso publicado!');
+        document.getElementById('aviso-msg').value = '';
+        carregarAvisos();
+      } catch(e) { App.erro(e.message); }
+    });
+  </script>
+</body>
+</html>
